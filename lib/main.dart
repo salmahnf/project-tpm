@@ -7,11 +7,22 @@ import 'services/session_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Hive
-  await Hive.initFlutter();
-  Hive.registerAdapter(UserModelAdapter());
-  
+
+  try {
+    // Initialize Hive
+    await Hive.initFlutter();
+
+    // Register adapters
+    Hive.registerAdapter(UserModelAdapter());
+
+    // Jika ada box user, buka juga
+    // await Hive.openBox<UserModel>('users');
+
+    print('Hive initialized successfully');
+  } catch (e) {
+    print('Error initializing Hive: $e');
+  }
+
   runApp(MyApp());
 }
 
@@ -32,7 +43,7 @@ class MyApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          
+
           if (snapshot.data == true) {
             return HomeScreen();
           } else {
