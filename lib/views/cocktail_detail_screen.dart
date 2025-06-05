@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import '../models/cocktail_model.dart';
+import 'package:get_storage/get_storage.dart';
+import '../services/session_service.dart';
+import '../models/user_model.dart';
+
 
 class CocktailDetailScreen extends StatefulWidget {
   final CocktailModel cocktail;
@@ -59,39 +63,46 @@ class _CocktailDetailScreenState extends State<CocktailDetailScreen> {
                   color: Colors.white.withOpacity(0.9),
                   shape: BoxShape.circle,
                 ),
-                child: IconButton(
-                  icon: Icon(
-                    _isFavorite ? Icons.favorite : Icons.favorite_border,
-                    color: _isFavorite ? Colors.red : Colors.black,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isFavorite = !_isFavorite;
-                    });
+child: IconButton(
+  icon: Icon(
+    _isFavorite ? Icons.favorite : Icons.favorite_border,
+    color: _isFavorite ? Colors.red : Colors.black,
+  ),
+  onPressed: () async {
+    final user = await SessionService.getCurrentUser();
 
-                    final favorites =
-                        _storage.read<List>('favorites')?.cast<String>() ?? [];
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please log in to save favorites')),
+      );
+      return;
+    }
 
-                    if (_isFavorite) {
-                      favorites.add(widget.cocktail.idDrink);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text('Added to favorites'),
-                            duration: Duration(seconds: 1)),
-                      );
-                    } else {
-                      favorites.remove(widget.cocktail.idDrink);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text('Removed from favorites'),
-                            duration: Duration(seconds: 1)),
-                      );
-                    }
+    final key = 'favorites_${user.username}';
+    final box = GetStorage();
+    List<String> favorites = box.read<List>(key)?.cast<String>() ?? [];
 
-                    _storage.write('favorites',
-                        favorites.toSet().toList()); // Hindari duplikat
-                  },
-                ),
+    setState(() {
+      _isFavorite = !_isFavorite;
+    });
+
+    if (_isFavorite) {
+      favorites.add(widget.cocktail.idDrink);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Added to favorites')),
+      );
+    } else {
+      favorites.remove(widget.cocktail.idDrink);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Removed from favorites')),
+      );
+    }
+
+    // Save updated list back to GetStorage
+    box.write(key, favorites.toSet().toList());
+  },
+),
+
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(

@@ -3,6 +3,8 @@ import 'package:get_storage/get_storage.dart';
 import '../models/cocktail_model.dart';
 import '../services/cocktail_service.dart';
 import 'cocktail_detail_screen.dart';
+import '../services/session_service.dart';
+import '../models/user_model.dart';
 
 class FavoriteCocktailsScreen extends StatefulWidget {
   const FavoriteCocktailsScreen({Key? key}) : super(key: key);
@@ -19,13 +21,17 @@ class _FavoriteCocktailsScreenState extends State<FavoriteCocktailsScreen> {
   @override
   void initState() {
     super.initState();
-    _favoritesFuture = _loadFavoriteCocktails();
+    _favoritesFuture = _loadFavoritesForCurrentUser();
   }
 
-  Future<List<CocktailModel>> _loadFavoriteCocktails() async {
-    final ids = _storage.read<List>('favorites')?.cast<String>() ?? [];
-    List<CocktailModel> cocktails = [];
+  Future<List<CocktailModel>> _loadFavoritesForCurrentUser() async {
+    final user = await SessionService.getCurrentUser();
+    if (user == null) return [];
 
+    final key = 'favorites_${user.username}';
+    final ids = _storage.read<List>(key)?.cast<String>() ?? [];
+
+    List<CocktailModel> cocktails = [];
     for (String id in ids) {
       final cocktail = await CocktailService.getCocktailById(id);
       if (cocktail != null) {
@@ -36,8 +42,12 @@ class _FavoriteCocktailsScreenState extends State<FavoriteCocktailsScreen> {
     return cocktails;
   }
 
-  void _clearFavorites() {
-    _storage.remove('favorites');
+  void _clearFavorites() async {
+    final user = await SessionService.getCurrentUser();
+    if (user == null) return;
+
+    final key = 'favorites_${user.username}';
+    _storage.remove(key);
     setState(() {
       _favoritesFuture = Future.value([]);
     });
