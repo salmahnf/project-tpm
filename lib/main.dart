@@ -1,29 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'models/user_model.dart';
 import 'views/login_screen.dart';
 import 'views/home_screen.dart';
 import 'services/session_service.dart';
 
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Init Storage & Hive
   await GetStorage.init();
+  await Hive.initFlutter();
+  Hive.registerAdapter(UserModelAdapter());
 
-  try {
-    // Initialize Hive
-    await Hive.initFlutter();
-
-    // Register adapters
-    Hive.registerAdapter(UserModelAdapter());
-
-    // Jika ada box user, buka juga
-    // await Hive.openBox<UserModel>('users');
-
-    print('Hive initialized successfully');
-  } catch (e) {
-    print('Error initializing Hive: $e');
-  }
+  // Init Notification
+  const AndroidInitializationSettings androidSettings =
+      AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initSettings = InitializationSettings(
+    android: androidSettings,
+  );
+  await flutterLocalNotificationsPlugin.initialize(initSettings);
 
   runApp(MyApp());
 }

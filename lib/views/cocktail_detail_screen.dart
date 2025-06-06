@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart'; // Tambahkan import untuk geocoding
+import '../services/notification_service.dart';
 
 class CocktailDetailScreen extends StatefulWidget {
   final CocktailModel cocktail;
@@ -359,6 +360,7 @@ class _CocktailDetailScreenState extends State<CocktailDetailScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Ditambahkan ke favorit')),
                       );
+                      await showFavoriteNotification(widget.cocktail.strDrink);
                     } else {
                       favorites.remove(widget.cocktail.idDrink);
                       ScaffoldMessenger.of(context).showSnackBar(
