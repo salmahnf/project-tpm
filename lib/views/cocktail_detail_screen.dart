@@ -356,12 +356,14 @@ class _CocktailDetailScreenState extends State<CocktailDetailScreen> {
                     });
 
                     if (_isFavorite) {
-                      favorites.add(widget.cocktail.idDrink);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Ditambahkan ke favorit')),
-                      );
-                      await showFavoriteNotification(widget.cocktail.strDrink);
-                    } else {
+  favorites.add(widget.cocktail.idDrink);
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Ditambahkan ke favorit')),
+  );
+  await showFavoriteNotification(widget.cocktail.strDrink);
+  await scheduleReminderNotification(widget.cocktail.strDrink); // ✅ Tambahan ini
+}
+ else {
                       favorites.remove(widget.cocktail.idDrink);
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Dihapus dari favorit')),

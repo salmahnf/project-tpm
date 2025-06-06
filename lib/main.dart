@@ -6,13 +6,14 @@ import 'models/user_model.dart';
 import 'views/login_screen.dart';
 import 'views/home_screen.dart';
 import 'services/session_service.dart';
+import 'services/notification_service.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await initializeTimeZone();
   // Init Storage & Hive
   await GetStorage.init();
   await Hive.initFlutter();

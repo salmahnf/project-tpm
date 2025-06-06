@@ -9,6 +9,9 @@ import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'convert_screen.dart';
 import 'cocktail_detail_screen.dart';
+import 'dart:async';
+import 'dart:math';
+import 'package:sensors_plus/sensors_plus.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -27,6 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   TextEditingController _searchController = TextEditingController();
   bool _isCocktailLoading = false;
 
+  // Shake variables
+  StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  DateTime _lastShakeTime = DateTime.now();
+  CocktailModel? _suggestedCocktail;
+
   @override
   void initState() {
     super.initState();
@@ -37,7 +45,78 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _stopShakeListener();
     super.dispose();
+  }
+
+  void _startShakeListener() {
+    _accelerometerSubscription?.cancel();
+    _accelerometerSubscription = accelerometerEvents.listen((event) async {
+      double acceleration =
+          sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+
+      if (acceleration > 15 &&
+          DateTime.now().difference(_lastShakeTime).inMilliseconds > 1500) {
+        _lastShakeTime = DateTime.now();
+
+        // 🛑 Disable shake listener sementara
+        _stopShakeListener();
+
+        // 🧪 Tampilkan dialog loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 20),
+                Text("Loading cocktail..."),
+              ],
+            ),
+          ),
+        );
+
+        try {
+          final randomCocktail = await CocktailController.getRandomCocktails();
+
+          if (randomCocktail.isNotEmpty) {
+            final cocktail = randomCocktail.first;
+            setState(() => _suggestedCocktail = cocktail);
+
+            // ❌ Tutup dialog loading
+            Navigator.of(context).pop();
+
+            // ➡️ Navigate ke detail screen
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => CocktailDetailScreen(cocktail: cocktail),
+              ),
+            );
+          } else {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Gagal mendapatkan cocktail')),
+            );
+          }
+        } catch (e) {
+          Navigator.of(context).pop();
+          print('Error fetching random cocktail: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Terjadi kesalahan saat mengambil cocktail')),
+          );
+        }
+
+        // ✅ Aktifkan kembali shake listener
+        _startShakeListener();
+      }
+    });
+  }
+
+  void _stopShakeListener() {
+    _accelerometerSubscription?.cancel();
+    _accelerometerSubscription = null;
   }
 
   Future<void> _loadCurrentUser() async {
@@ -89,6 +168,29 @@ class _HomeScreenState extends State<HomeScreen> {
         _isCocktailLoading = false;
       });
     }
+  }
+
+  Widget _buildShakePage() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.vibration, size: 100, color: Colors.blue),
+          SizedBox(height: 20),
+          Text(
+            'Guncang HP untuk mendapatkan rekomendasi cocktail!',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          ),
+          SizedBox(height: 30),
+          if (_suggestedCocktail != null)
+            Text(
+              '🍹 $_suggestedCocktail',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+        ],
+      ),
+    );
   }
 
   Future<void> _searchCocktails(String query) async {
@@ -348,36 +450,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Search Page Widget
-  Widget _buildSearchPage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search,
-            size: 100,
-            color: Colors.grey,
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Halaman Search',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.grey,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // Get current page based on selected index
   Widget _getCurrentPage() {
     switch (_currentIndex) {
       case 0:
         return _buildCocktailHomePage(); // Changed from _buildHomePage()
       case 1:
-        return _buildSearchPage();
+        return _buildShakePage();
       case 2:
         return ConvertScreen();
       case 3:
@@ -396,7 +475,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return 'Cocktails';
       case 1:
-        return 'Search';
+        return 'Shake';
       case 2:
         return 'Convert';
       case 3:
@@ -442,6 +521,11 @@ class _HomeScreenState extends State<HomeScreen> {
         onTap: (index) {
           setState(() {
             _currentIndex = index;
+            if (index == 1) {
+              _startShakeListener();
+            } else {
+              _stopShakeListener();
+            }
           });
         },
         selectedItemColor: Colors.blue,
@@ -452,8 +536,8 @@ class _HomeScreenState extends State<HomeScreen> {
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Search',
+            icon: Icon(Icons.vibration),
+            label: 'Shake',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.swap_horiz),
