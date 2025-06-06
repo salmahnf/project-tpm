@@ -7,6 +7,7 @@ import '../models/testimonial_model.dart';
 import '../services/session_service.dart';
 import '../utils/constants.dart';
 import 'login_screen.dart';
+import 'testimonial_screen.dart'; // Tambahkan ini
 
 class ProfileScreen extends StatefulWidget {
   final UserModel? currentUser;
@@ -20,160 +21,46 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  List<TestimonialModel> _kritik = [];
-  List<TestimonialModel> _saran = [];
-  String? _username;
-
-  bool _kritikExpanded = true;
-  bool _saranExpanded = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadTestimonials();
-  }
-
-  Future<void> _loadTestimonials() async {
-    final user = await SessionService.getCurrentUser();
-    if (user == null) return;
-    final box = Hive.box<TestimonialModel>('testimonials');
-    final values =
-        box.values.where((t) => t.username == user.username).toList();
-
-    setState(() {
-      _username = user.username;
-      _kritik = values.where((t) => t.type == 'Kritik').toList();
-      _saran = values.where((t) => t.type == 'Saran').toList();
-    });
-  }
-
-  void _showInputDialog({TestimonialModel? item}) {
-    final controller = TextEditingController(text: item?.content ?? '');
-    String selectedType = item?.type ?? 'Kritik';
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(item == null ? 'Tambah Testimoni' : 'Edit Testimoni'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DropdownButton<String>(
-              value: selectedType,
-              onChanged: (value) => setState(() => selectedType = value!),
-              items: ['Kritik', 'Saran']
-                  .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                  .toList(),
-            ),
-            TextField(
-              controller: controller,
-              maxLines: 3,
-              decoration: InputDecoration(hintText: 'Isi testimoni'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: Text('Batal')),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.trim().isEmpty || _username == null) return;
-              final box = Hive.box<TestimonialModel>('testimonials');
-
-              if (item != null) {
-                item.content = controller.text.trim();
-                item.type = selectedType;
-                await item.save();
-              } else {
-                await box.add(TestimonialModel(
-                  type: selectedType,
-                  content: controller.text.trim(),
-                  username: _username!,
-                ));
-              }
-
-              Navigator.pop(context);
-              _loadTestimonials();
-            },
-            child: Text(item == null ? 'Simpan' : 'Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deleteDialog(TestimonialModel item) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Hapus Testimoni'),
-        content: Text('Yakin ingin menghapus testimoni ini?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: Text('Batal')),
-          TextButton(
-            onPressed: () async {
-              await item.delete();
-              Navigator.pop(context);
-              _loadTestimonials();
-            },
-            child: Text('Hapus', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTestimonialCard(String title, List<TestimonialModel> list,
-      bool expanded, VoidCallback onToggle) {
+  Widget _buildConstantMessage() {
     return Container(
-      margin: EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 20),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
-      ),
-      child: Column(
-        children: [
-          ListTile(
-            tileColor: Colors.black,
-            title: Text(title,
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-            trailing: Icon(
-              expanded ? Icons.expand_less : Icons.expand_more,
-              color: Colors.white,
-            ),
-            onTap: onToggle,
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
-          if (expanded)
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              color: Colors.white,
-              child: list.isEmpty
-                  ? Text('Belum ada $title.',
-                      style: TextStyle(color: Colors.grey))
-                  : Column(
-                      children: list.map((t) {
-                        return ListTile(
-                          title: Text(t.content),
-                          trailing: Wrap(
-                            spacing: 4,
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _showInputDialog(item: t),
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _deleteDialog(t),
-                              ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
-                    ),
-            )
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.chat_bubble_outline, color: Colors.blue),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  'Kesan & Pesan Developer',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.blue,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'TPM sangat asik dan menyenangkan dan menegangkan dan menguji adrenalin ketika mengerjakan tugas" nya😁✨',
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -183,14 +70,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showInputDialog(),
-        backgroundColor: Colors.blue,
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
-        ),
-      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(Constants.defaultPadding),
         child: Column(
@@ -198,13 +77,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SizedBox(height: 20),
             _buildProfileHeader(),
             SizedBox(height: 30),
-            _buildTestimonialCard('Kritik 😘', _kritik, _kritikExpanded, () {
-              setState(() => _kritikExpanded = !_kritikExpanded);
-            }),
-            _buildTestimonialCard('Saran 😁', _saran, _saranExpanded, () {
-              setState(() => _saranExpanded = !_saranExpanded);
-            }),
-            SizedBox(height: 20),
+            _buildConstantMessage(),
+            _buildMenuItem(
+              icon: Icons.rate_review,
+              title: 'Testimonial',
+              subtitle: 'Lihat dan kelola kritik & saran',
+              onTap: _navigateToTestimonial,
+            ),
+            SizedBox(height: 12),
             _buildMenuItem(
               icon: Icons.info_outline,
               title: 'About Me',
@@ -217,12 +97,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: 'Logout',
               subtitle: 'Keluar dari aplikasi',
               onTap: () async {
-                await SessionService.clearSession();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (_) => LoginScreen()),
-                  (route) => false,
+                final shouldLogout = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Konfirmasi Logout'),
+                    content: Text('Apakah Anda yakin ingin logout?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text('Batal'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child:
+                            Text('Logout', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
                 );
+
+                if (shouldLogout == true) {
+                  await SessionService.clearSession();
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => LoginScreen()),
+                    (route) => false,
+                  );
+                }
               },
               isLogout: true,
             ),
@@ -250,9 +151,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         children: [
           CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.grey[300],
-              child: Icon(Icons.person, size: 40)),
+            radius: 40,
+            backgroundColor: Colors.grey[300],
+            child: Icon(Icons.person, size: 40),
+          ),
           SizedBox(height: 16),
           Text(
             widget.currentUser?.username ?? 'User',
@@ -302,8 +204,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: isLogout ? Colors.red[100] : Colors.blue[50],
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon,
-              color: isLogout ? Colors.red[600] : Colors.blue[600], size: 24),
+          child: Icon(
+            icon,
+            color: isLogout ? Colors.red[600] : Colors.blue[600],
+            size: 24,
+          ),
         ),
         title: Text(
           title,
@@ -313,12 +218,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: isLogout ? Colors.red[700] : Colors.black87,
           ),
         ),
-        subtitle: Text(subtitle,
-            style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+        subtitle: Text(
+          subtitle,
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+        ),
         trailing:
             Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
         onTap: onTap,
       ),
+    );
+  }
+
+  void _navigateToTestimonial() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => TestimonialScreen()),
     );
   }
 
@@ -356,7 +270,9 @@ class AboutUsScreen extends StatelessWidget {
             children: [
               SizedBox(height: 20),
               CircleAvatar(
-                  radius: 90, backgroundImage: AssetImage('assets/img/saya.jpg')),
+                radius: 90,
+                backgroundImage: AssetImage('assets/img/saya.jpg'),
+              ),
               SizedBox(height: 24),
               Text('Salma Hanifa',
                   style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),

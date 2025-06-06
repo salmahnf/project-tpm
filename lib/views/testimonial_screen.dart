@@ -9,107 +9,99 @@ class TestimonialScreen extends StatefulWidget {
 }
 
 class _TestimonialScreenState extends State<TestimonialScreen> {
-  bool _isKritikExpanded = true;
-  bool _isSaranExpanded = true;
   List<TestimonialModel> _kritik = [];
   List<TestimonialModel> _saran = [];
   String? _username;
+  bool _kritikExpanded = true;
+  bool _saranExpanded = true;
 
   @override
   void initState() {
     super.initState();
-    _loadUserTestimonials();
+    _loadTestimonials();
   }
 
-  Future<void> _loadUserTestimonials() async {
+  Future<void> _loadTestimonials() async {
     final user = await SessionService.getCurrentUser();
     if (user == null) return;
-
     final box = Hive.box<TestimonialModel>('testimonials');
-    final all = box.values.where((t) => t.username == user.username).toList();
+    final values =
+        box.values.where((t) => t.username == user.username).toList();
 
     setState(() {
       _username = user.username;
-      _kritik = all.where((t) => t.type == 'Kritik').toList();
-      _saran = all.where((t) => t.type == 'Saran').toList();
+      _kritik = values.where((t) => t.type == 'Kritik').toList();
+      _saran = values.where((t) => t.type == 'Saran').toList();
     });
   }
 
-  void _showInputDialog({TestimonialModel? existing}) {
-    final controller = TextEditingController(text: existing?.content ?? '');
-    String selectedType = existing?.type ?? 'Kritik';
+  void _showInputDialog({TestimonialModel? item}) {
+    final controller = TextEditingController(text: item?.content ?? '');
+    String selectedType = item?.type ?? 'Kritik';
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(existing == null ? 'Tambah Testimoni' : 'Edit Testimoni'),
+        title: Text(item == null ? 'Tambah Testimoni' : 'Edit Testimoni'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButton<String>(
               value: selectedType,
+              onChanged: (value) => setState(() => selectedType = value!),
               items: ['Kritik', 'Saran']
                   .map((t) => DropdownMenuItem(value: t, child: Text(t)))
                   .toList(),
-              onChanged: (value) => setState(() => selectedType = value!),
             ),
             TextField(
               controller: controller,
               maxLines: 3,
-              decoration: InputDecoration(hintText: 'Isi testimoni...'),
+              decoration: InputDecoration(hintText: 'Isi testimoni'),
             ),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Batal'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Batal')),
           ElevatedButton(
             onPressed: () async {
+              if (controller.text.trim().isEmpty || _username == null) return;
               final box = Hive.box<TestimonialModel>('testimonials');
-              final content = controller.text.trim();
 
-              if (content.isEmpty || _username == null) return;
-
-              if (existing != null) {
-                existing
-                  ..content = content
-                  ..type = selectedType;
-                await existing.save();
+              if (item != null) {
+                item.content = controller.text.trim();
+                item.type = selectedType;
+                await item.save();
               } else {
-                final newItem = TestimonialModel(
+                await box.add(TestimonialModel(
                   type: selectedType,
-                  content: content,
+                  content: controller.text.trim(),
                   username: _username!,
-                );
-                await box.add(newItem);
+                ));
               }
 
               Navigator.pop(context);
-              _loadUserTestimonials();
+              _loadTestimonials();
             },
-            child: Text(existing == null ? 'Simpan' : 'Update'),
+            child: Text(item == null ? 'Simpan' : 'Update'),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDelete(TestimonialModel item) {
+  void _deleteDialog(TestimonialModel item) {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         title: Text('Hapus Testimoni'),
         content: Text('Yakin ingin menghapus testimoni ini?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text('Batal')),
           TextButton(
             onPressed: () async {
               await item.delete();
               Navigator.pop(context);
-              _loadUserTestimonials();
+              _loadTestimonials();
             },
             child: Text('Hapus', style: TextStyle(color: Colors.red)),
           ),
@@ -118,74 +110,56 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
     );
   }
 
-  Widget _buildDropdownCard({
-    required String title,
-    required bool isExpanded,
-    required VoidCallback onTap,
-    required List<TestimonialModel> contentList,
-  }) {
+  Widget _buildTestimonialCard(String title, List<TestimonialModel> list,
+      bool expanded, VoidCallback onToggle) {
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),
       child: Column(
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: isExpanded
-                  ? BorderRadius.only(
-                      topLeft: Radius.circular(8), topRight: Radius.circular(8))
-                  : BorderRadius.circular(8),
+          ListTile(
+            tileColor: Colors.black,
+            title: Text(title,
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            trailing: Icon(
+              expanded ? Icons.expand_less : Icons.expand_more,
+              color: Colors.white,
             ),
-            child: ListTile(
-              onTap: onTap,
-              leading: Icon(Icons.circle, color: Colors.orange, size: 10),
-              title: Text(title, style: TextStyle(color: Colors.white)),
-              trailing: Icon(
-                isExpanded ? Icons.expand_less : Icons.expand_more,
-                color: Colors.white,
-              ),
-            ),
+            onTap: onToggle,
           ),
-          if (isExpanded)
+          if (expanded)
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(8),
-                  bottomRight: Radius.circular(8),
-                ),
-              ),
-              child: contentList.isEmpty
-                  ? Text('Belum ada ${title.toLowerCase()}.',
-                      style: TextStyle(color: Colors.grey[600]))
+              padding: EdgeInsets.all(12),
+              color: Colors.white,
+              child: list.isEmpty
+                  ? Text('Belum ada $title.',
+                      style: TextStyle(color: Colors.grey))
                   : Column(
-                      children: contentList.map((t) {
+                      children: list.map((t) {
                         return ListTile(
-                          contentPadding: EdgeInsets.zero,
                           title: Text(t.content),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
+                          trailing: Wrap(
+                            spacing: 4,
                             children: [
                               IconButton(
                                 icon: Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _showInputDialog(existing: t),
+                                onPressed: () => _showInputDialog(item: t),
                               ),
                               IconButton(
                                 icon: Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => _confirmDelete(t),
+                                onPressed: () => _deleteDialog(t),
                               ),
                             ],
                           ),
                         );
                       }).toList(),
                     ),
-            ),
+            )
         ],
       ),
     );
@@ -194,36 +168,28 @@ class _TestimonialScreenState extends State<TestimonialScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        backgroundColor: Colors.grey[100],
-        elevation: 0,
-        title: Text('Testimonial', style: TextStyle(color: Colors.black)),
-        iconTheme: IconThemeData(color: Colors.black),
+        title: Text('Testimonial'),
+        backgroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            _buildDropdownCard(
-              title: 'Kritik',
-              isExpanded: _isKritikExpanded,
-              onTap: () =>
-                  setState(() => _isKritikExpanded = !_isKritikExpanded),
-              contentList: _kritik,
-            ),
-            _buildDropdownCard(
-              title: 'Saran',
-              isExpanded: _isSaranExpanded,
-              onTap: () => setState(() => _isSaranExpanded = !_isSaranExpanded),
-              contentList: _saran,
-            ),
-          ],
-        ),
-      ),
+      backgroundColor: Colors.grey[50],
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showInputDialog(),
-        child: Icon(Icons.add),
+        backgroundColor: Colors.blue,
+        child: Icon(Icons.add, color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _buildTestimonialCard('Kritik 😘', _kritik, _kritikExpanded, () {
+              setState(() => _kritikExpanded = !_kritikExpanded);
+            }),
+            _buildTestimonialCard('Saran 😁', _saran, _saranExpanded, () {
+              setState(() => _saranExpanded = !_saranExpanded);
+            }),
+          ],
+        ),
       ),
     );
   }
