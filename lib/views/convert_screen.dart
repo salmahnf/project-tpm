@@ -292,7 +292,7 @@ class _ConvertScreenState extends State<ConvertScreen> {
             child: ElevatedButton(
               onPressed: _isLoadingCurrency ? null : _convertCurrency,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
@@ -532,7 +532,7 @@ class _ConvertScreenState extends State<ConvertScreen> {
             child: ElevatedButton(
               onPressed: _isLoadingTimezone ? null : _convertTimezone,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
+                backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
                 padding: EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
